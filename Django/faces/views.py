@@ -11,8 +11,14 @@ def data_generator(self):
     # print(BASE_DIR)
     # url = staticfiles_storage.url('model_data/deploy.prototxt')
     # staticfiles_storage.open('model_data/deploy.prototxt')
-    prototxt_path = staticfiles_storage.open('modeldata/deploy.prototxt')
-    caffemodel_path = staticfiles_storage.open('modeldata/weights.caffemodel')
+    # prototxt_path = staticfiles_storage.url('/modeldata/deploy.prototxt')
+    caffemodel_file = staticfiles_storage.open('weights.caffemodel')
+    # caffemodel_file = staticfiles_storage.open(caffemodel_path)
+    newcontents = caffemodel_file.read()
+    # prototxt_file = staticfiles_storage.open('deploy.prototxt')
+    # contents = prototxt_file.read()
+    print(newcontents)
+    # caffemodel_file = staticfiles_storage.open('/modeldata/weights.caffemodel')
     # print(prototxt_path)
     # print(caffemodel_path)
     # base_dir = os.path.dirname(__file__)
@@ -24,7 +30,7 @@ def data_generator(self):
     # print(prototxt_path,"hello")
     # print(caffemodel_path,"hello")
     # # Read the model
-    model = cv2.dnn.readNetFromCaffe(prototxt_path, caffemodel_path)
+    # model = cv2.dnn.readNetFromCaffe(prototxt_path, caffemodel_path)
 
     # # Create directory 'updated_images' if it does not exist
     # if not os.path.exists('updated_images'):
@@ -104,6 +110,6 @@ def face_extractor(self):
 
 def home(request):
     url = staticfiles_storage.url('images/faces.jpg')
-    # print(url)
+    print(url)
     data_generator(url)
     return render(request, "home.html")
