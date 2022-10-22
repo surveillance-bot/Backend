@@ -94,5 +94,5 @@ def face_extractor(self):
 def home(request):
     url = staticfiles_storage.url('images/faces.jpg')
     print(url)
-    data_generator(url)
+    # data_generator(url)
     return render(request, "home.html")
