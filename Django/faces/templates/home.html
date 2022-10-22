@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
-{% load static %}
 
 {% block content %}
+{% load static %}
 
+    <img src="{% static '/images/faces.jpg' %}" alt="My image">
     <a href="{% static 'faces/help.txt' %}">Click me</a>
     <h2>We are at home page   {% static 'faces/help.txt' %}</h2>
 {% endblock content %}

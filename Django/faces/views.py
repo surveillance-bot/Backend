@@ -1,31 +1,98 @@
 from django.shortcuts import render
 from django.contrib.staticfiles.storage import staticfiles_storage
+import os
 import cv2
-# Create your views here.
+import numpy as np
+ # Create your views here.
+
+def data_generator(self):
+    prototxt_path = staticfiles_storage.url('modeldata/deploy.prototxt')
+    caffemodel_path = staticfiles_storage.url('modeldata/weights.caffemodel')
+    # base_dir = os.path.dirname(__file__)
+    # prototxt_path = os.path.join(base_dir + '\model_data\deploy.prototxt')
+    # caffemodel_path = os.path.join(base_dir + '\model_data\weights.caffemodel')
+
+    # Read the model
+    model = cv2.dnn.readNetFromCaffe(prototxt_path, caffemodel_path)
+
+    # Create directory 'updated_images' if it does not exist
+    if not os.path.exists('updated_images'):
+        print("New directory created")
+        os.makedirs('updated_images')
+
+    # Loop through all images and save images with marked faces
+    for file in os.listdir(staticfiles_storage.url):
+        file_name, file_extension = os.path.splitext(file)
+        if (file_extension in ['.png','.jpg']):
+            print("Image path: {}".format(staticfiles_storage.url('images/') + file))
+
+            image = cv2.imread(staticfiles_storage.url('images/') + file)
+            # print(image)
+            (h, w) = image.shape[:2]
+            blob = cv2.dnn.blobFromImage(cv2.resize(image, (300, 300)), 1.0, (300, 300), (104.0, 177.0, 123.0))
+
+            model.setInput(blob)
+            detections = model.forward()
+
+            # Create frame around face
+            for i in range(0, detections.shape[2]):
+                box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+                (startX, startY, endX, endY) = box.astype("int")
+
+                confidence = detections[0, 0, i, 2]
+
+                # If confidence > 0.5, show box around face
+                if (confidence > 0.5):
+                    cv2.rectangle(image, (startX, startY), (endX, endY), (255, 255, 255), 2)
+
+            # cv2.imwrite(base_dir + '/updated_images/' + file, image)
+            print("Image " + file + " converted successfully")
+
+
+def face_extractor(self):
+    base_dir = os.path.dirname(__file__)
+    prototxt_path = os.path.join(base_dir + '/model_data/deploy.prototxt')
+    caffemodel_path = os.path.join(base_dir + '/model_data/weights.caffemodel')
+
+    # Read the model
+    model = cv2.dnn.readNetFromCaffe(prototxt_path, caffemodel_path)
+
+    # Create directory 'faces' if it does not exist
+    if not os.path.exists('faces'):
+        print("New directory created")
+        os.makedirs('faces')
+
+    # Loop through all images and strip out faces
+    count = 0
+    for file in os.listdir(base_dir + '/images'):
+        file_name, file_extension = os.path.splitext(file)
+        if (file_extension in ['.png','.jpg']):
+            image = cv2.imread(base_dir + '/images/' + file)
+
+            (h, w) = image.shape[:2]
+            blob = cv2.dnn.blobFromImage(cv2.resize(image, (300, 300)), 1.0, (300, 300), (104.0, 177.0, 123.0))
+
+            model.setInput(blob)
+            detections = model.forward()
+
+            # Identify each face
+            for i in range(0, detections.shape[2]):
+                box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+                (startX, startY, endX, endY) = box.astype("int")
+
+                confidence = detections[0, 0, i, 2]
+
+                # If confidence > 0.5, save it as a separate file
+                if (confidence > 0.5):
+                    count += 1
+                    frame = image[startY:endY, startX:endX]
+                    cv2.imwrite(base_dir + '/faces/' + str(i) + '_' + file, frame)
+
+    print("Extracted " + str(count) + " faces from all images")
+
 
 def home(request):
-    
     url = staticfiles_storage.url('images/faces.jpg')
     print(url)
-    image = cv2.imread(url)
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-    faceCascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-    faces = faceCascade.detectMultiScale(
-        gray,
-        scaleFactor=1.3,
-        minNeighbors=3,
-        minSize=(30, 30)
-    )
-
-    print("[INFO] Found {0} Faces.".format(len(faces)))
-
-    for (x, y, w, h) in faces:
-        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        roi_color = image[y:y + h, x:x + w]
-        print("[INFO] Object found. Saving locally.")
-        cv2.imwrite(str(w) + str(h) + '_faces.jpg', roi_color)
-
-    status = cv2.imwrite('faces_detected.jpg', image)
-    print("[INFO] Image faces_detected.jpg written to filesystem: ", status)
+    data_generator(url)
     return render(request, "home.html")
